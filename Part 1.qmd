@@ -1,0 +1,570 @@
+---
+title: "Part 1"
+format: html
+editor: visual
+---
+
+Packages for this Page
+
+```{r}
+install.packages("dplyr")
+install.packages("tidyverse")
+install.packages("skimr")
+install.packages(c('stringdist', 'geosphere')) #dependencies needed for fuzzyjoin
+```
+
+## 5 Number Summary (Tukey 1977)
+
+For numeric variables...
+
+1.  Sample Minimum
+
+2.  1st quartile
+
+3.  Median
+
+4.  3rd quartile
+
+5.  Sample Maximum
+
+PLUS the arithmetic mean
+
+This set of variables will give a good descriptive overview of the data.
+
+## Country Data 2016 Challenge
+
+1.  Write code to load the dataset (CPDS) into a data.frame variable, "d"
+
+```{r}
+library(tidyverse)
+d <- file.choose() #opens window to select any file from any directory
+d <- read_csv(data = d, col_names = TRUE) #read file, create as data frame
+```
+
+2.  Summarize Variables How many variables? Observations? How many countries? Median area and population size for each country
+
+```{r}
+ncol(d)
+
+
+```
+
+3.  Create a new density variable in your df calculated as population/area 10 most dense countries? 10 least dense?
+
+## Kamilar and Cooper (2013) dataset
+
+```{r}
+f <- "https://raw.githubusercontent.com/difiore/ada-datasets/main/KamilarAndCooperData.csv"
+d.kc <- read_csv(f, col_names = TRUE) #creates a 'tibble' dataframe
+#213 rows, 45 columns
+```
+
+```{r}
+#| outcome: FALSE
+head(d.kc)
+tail()
+str()
+glimpse()
+dim(d.kc) # number of rows and cols for a data frame -> 213, 45
+names(d.kc) #tidy version of colnames, shows all y variables
+colnames() #base R
+rownames() #only possible with base R
+```
+
+attach() lets us use variable names directly so we don't need \$ notation or \[\[\]\] While the dataset is attached, it does not need to be referenced by name in order to work with variables inside it.
+
+```{r}
+attach(d.kc)
+mean(Brain_Size_Female_Mean, na.rm = TRUE) #-> 65.23588
+
+detach(d.kc)
+mean(Brain_Size_Female_Mean, na.rm = TRUE) #throws an error
+
+with(d.kc, mean(Brain_Size_Female_Mean, na.rm = TRUE))
+```
+
+EAD with skimr
+
+```{r}
+library(skimr)
+head(skim(d.kc)) #shows organized form of first 6 rows, including a histogram showing distribution of the variable
+tail(skim(d.kc))
+```
+
+## Special Data Values
+
+-   NA is used for missing data
+-   Inf is used for infinity, when the result of a calc. is too extreme for R to express
+-   NaN is used when R can't express the results because the outcome is not a number
+
+## Visualizing Data
+
+## Boxplots
+
+"Box" represents the interquartile range (IQR) - extending from 1st to 3rd quartile. Line represents the median (Q2). "Whiskers" represnt the minimum within \[Q1 - 1.5 x IQR\] and maximum within \[Q3 + 1.5 x IQR\].
+
+Base R
+
+```{r}
+boxplot(log(d.kc$Body_mass_female_mean)) #horizontal = FALSE by default
+
+stripchart(log(d.kc$Body_mass_female_mean), 
+           method = "jitter", 
+           col = "blue",
+           vertical = TRUE,
+           add = TRUE)
+## both charts to overlay need to have same orientation (in this case, vertical)
+## TROUBLESHOOT NEEDED
+```
+
+```{r}
+boxplot(data = d.kc, log(Body_mass_female_mean) ~ Family)
+stripchart(log(d.kc$Body_mass_female_mean) ~ d.kc$Family, 
+           method = "jitter", 
+           col = "blue", 
+           vertical = TRUE, 
+           add = TRUE)
+## TROUBLESHOOT NEEDED
+```
+
+ggplot2
+
+```{r}
+#SYNTAX
+ggplot(data = ..., mapping = aes(...))+
+  geom_...(...) +
+  theme(...) + ... )
+```
+
+boxplot example using ggplot2
+
+```{r}
+#use p to hold the plot object
+p <- ggplot( data = d.kc, aes(x = Family, y = log(Body_mass_female_mean))) +
+  geom_boxplot(na.rm = TRUE)
+p
+
+#expand upon the existing plot object, adding ggplot layers
+p <- p + 
+  geom_jitter(color = "blue", width = 0.1)
+p
+
+p <- p + theme(axis.text.x = element_text(angle=90)) +
+  ylab("log(Female Body Mass)")
+p
+```
+
+## Histograms
+
+Base r
+
+```{r}
+hist(log(d.kc$Body_mass_female_mean)) #based on counts
+hist(log(d.kc$Body_mass_female_mean), freq = FALSE) #based on density, changes y axis to be out of 1
+
+lines(density(log(d.kc$Body_mass_female_mean), na.rm = TRUE), cole = "blue")
+abline( v = quantile(log(d.kc$Body_mass_female_mean), prob = c(0.05, 0.95), na.rm = TRUE), col = "red")
+##these two lines are not working! my base R is allergic to overlaying
+```
+
+ggplot
+
+```{r}
+p <- ggplot(data = d.kc, aes(log(Body_mass_female_mean)))
+
+p <- p + geom_histogram(binwidth = 1, center = 0.5)
+#each bin will be one unit wide, centered
+p
+
+#same thing but y axis is based on density not count (must be added to the first p)
+p <- p + geom_histogram(bins = 9, aes( y = ..density..))
+p
+
+p <- p + geom_density()
+p
+
+##NOTES MISSING
+```
+
+## Scatterplots
+
+Base R
+
+```{r}
+plot(log(d.kc$Body_mass_female_mean) ~ log(d.kc$Brain_Size_Female_Mean))
+```
+
+ggplot
+
+```{r}
+p <- ggplot(data = d.kc, aes( x = log(Body_mass_female_mean), y = log(Brain_Size_Female_Mean)))
+#without parameters for geometry the plot will be empty, just axes
+p <- p + geom_point()
+p
+
+p <- p + geom_point(aes(color = factor(Family)), na.rm = TRUE)
+p
+
+# + xlab()
+# + ylab()
+# + theme(legend.position = "bottom", legend.title = element_blank())
+
+p <- p + geom_smooth(method = "lm", color = "red", na.rm = TRUE)
+p
+```
+
+## Data Wrangling with Tidyverse
+
+Tidy data is a way to organize data in a consistent structure across packages. A table is tidy if...
+
+Each variable is in its own column.
+
+Each observation is in its own row.
+
+```{r}
+library(dplyr)
+filter()
+#extract rows that meet logical criteria
+
+select()
+#extract columns as a table
+
+arrange()
+#.//
+
+group_by()
+#create grouped copy of a table grouped by columns
+
+mutate()
+# compute a new column based on existing conditions
+```
+
+## dplyr Exercises
+
+Extract a subset of data that includes just the family Hominidae and rows where males are \> 2x the size of females.
+
+```{r}
+#Base R
+s <- d.kc[d.kc$Family == "Hominidae" & d.kc$Mass_Dimorphism > 2 , ]
+dim(s) #3 rows, 45 columns
+
+#dplyr
+s <- filter(d.kc, Family == "Hominidae" & Mass_Dimorphism > 2)
+```
+
+Extract a subsest of data that includes just the variables Family, Genus, and Mean Male Body Mass.
+
+```{r}
+#Base R
+s <- d.kc[, c("Family" "Genus", "Body_mass_male_mean")]
+
+#dplyr
+s <- select(d.kc, c("Family", "Genus", "Body_mass_male_mean"))
+
+#dplyr uses pipe operators to streamline
+s <- d.kc |> 
+  select(c("Family", "Genus", "Body_mass_male_mean")) |>
+  filter(Family == "Hominidae")
+#pipe operators basically carry forward result into a new function/action
+dim(s) # 6, 3
+```
+
+Order a dataset alphabetically by Family and Genus, and in terms of decreasing mean male body mass.
+
+```{r}
+s <- select(d.kc, c("Family", "Genus", "Body_mass_male_mean"))
+
+#Base R
+s <- d.kc[order(d.kc$Family, d.kc$Genus, -d.kc$Body_mass_male_mean),]
+
+#dplyr
+s <- arrange(d.kc, Family, Genus, desc(Body_mass_male_mean))
+```
+
+Calculate average Mean Female Body Mass by Family
+
+```{r}
+#Base R
+s <- aggregate(d.kc$Body_mass_female_mean ~B d.kc$Family, FUN = "mean", na.rm = TRUE)
+
+#dplyr
+s <- summarise(group_by(d.kc, Family), avgF = mean(Body_mass_female_mean, na.rm = TRUE))
+
+#using the pipe operator
+s <- d.kc |>
+  group_by(Family) |>
+  summarise(avgF = mean(Body_mass_female_mean, na.rm = TRUE))
+#can use dplyr::summarize to make sure it pulls from the correct package
+#should generally accept summarize/summarise spelling unless conflicting with another package
+```
+
+Add a column, "taxonomy," that concatenates Family, Genus, and Species
+
+```{r}
+#Base R
+
+d.kc$Taxonomy <- paste0(d.kc$Family, d.kc$Genus, d.kc$Species)
+d.kc$Taxonomy
+#concatenates without spaces or anything else
+d.kc$Taxonomy <- paste(d.kc$Family, d.kc$Genus, d.kc$Species, sep = " ")
+d.kc$Taxonomy #adds a separator string
+
+#dplyr
+d.kc <- d.kc |>
+  mutate(Taxonomy = paste0(Family, "-", Genus, "-", Species))
+d.kc$Taxonomy
+#same, but in this case using - as a separator and dplyr pipes
+
+```
+
+Other Wrangling with dplyr
+
+```{r}
+d.kc <- d.kc |>
+  relocate(Taxonomy)
+#will move new variable to the first column
+
+d.kc <- d.kc |>
+  relocate(Taxonomy, .after = Species) #column goes before column Species
+d.kc <- d.kc |>
+  relocate(Taxonomy, .before = Superfamily) 
+
+d.kc <- d.kc |>
+  select(Taxonomy, everything())
+#in this case, Taxonomy will be in the first column position
+#could also manually reorder multiple columns using c()
+```
+
+## Flow Control
+
+To start, load IMDB-movies.csv from ada-datasets.
+
+```{r}
+library(dplyr)
+f <- "https://raw.githubusercontent.com/difiore/ada-datasets/main/IMDB-movies.csv"
+imdb <- read_csv(f, col_names = TRUE)
+View(imdb)
+```
+
+Challenge: in one line of code, add a new variable called "comedy" that is TRUE if one of the genres is listed as "comedy".
+
+```{r}
+#parse the genre cell to see if it contains comedy
+## str_detect(imdb$genres, "Comedy", negate = FALSE)
+#if result is true, return TRUE
+## if_else(str_detect(imdb$genres, "Comedy", negate = FALSE), TRUE, FALSE)
+
+#in Base R
+imdb$Comedy <- if_else(str_detect(imdb$genres, "Comedy", negate = FALSE), TRUE, FALSE)
+View(imdb)
+
+#in dplyr
+imdb <- imdb |> mutate(Comedy = if_else(str_detect(genres, "Comedy"), TRUE, FALSE))
+View(imdb$Comedy)
+```
+
+Summarize can be used to return a tibble of new variables using functions within (such as n() or sum()) .
+
+```{r}
+c<- imdb |>
+  summarize(count = n(), comedies = sum(Comedy, na.rm = TRUE))
+c
+```
+
+Conditional Statements
+
+if (test) {do this} else {do this}
+
+ifelse(test, do if true, do if false)
+
+if_else(test, do if true, do if false)
+
+case_when( case1 \~ {do this}, case2 \~ {do this}, .default = NULL)
+
+In one line of code, add a new variable for ranking where ranking is "low" if averageRating is 0 - 3.3, "med" if 3.3-6.7, high is 6.7 - 10.
+
+```{r}
+imdb <- imdb |>
+  mutate(ranking = 
+           case_when( averageRating < 3.3 ~ "low",
+                      averageRating < 6.7 ~ "med", 
+                      averageRating >= 6.7 ~ "high"))
+View(imdb$ranking)
+# case_when iterates line by line, which means if case1 is true, it will not override with case2
+```
+
+In one line of code, output the total number of movies in each category AND their average runtime
+
+```{r}
+s <- imdb |> 
+  group_by(ranking) |>
+  summarize(count = n(), avgRun = mean(runtimeMinutes, na.rm = TRUE))
+            
+s
+```
+
+## Loops
+
+For Loops:
+
+for(i in 1:n) {do this}
+
+while(\<\<test\>\>) {do this}
+
+```{r}
+#SIMPLE EXAMPLES
+
+for (i in 1:10) {
+  print(i)
+}
+#for each digit from 1-10, print the current digig
+#will return a vector of digits 1 through 10
+
+i <- 1
+while (i <= 10) {
+  print(i)
+  i <- i + 1}
+#prints i, then adds 1 to it 
+#i gets modified during the loop process, need to make sure there is an 'out' of the loop
+```
+
+Write code to loop through all rows in dataset and print out the cumulative running time of all the movies.
+
+```{r}
+cruntime <- 0
+#cruntime <- for(i in 1:nrow(imdb) {
+#  cruntime <- cruntime + imdb[i,]$runtimeMinutes}
+#this doesn't work because sometimes the value is NA, need to find a way to only add numerical values in runtimeMinutes column
+
+cruntime <- 0
+for(i in 1:nrow(imdb)) {
+  if(!is.na(imdb[i, ]$runtimeMinutes)) {
+      cruntime <- cruntime + imdb[i, ]$runtimeMinutes
+  }
+}
+cruntime
+#3041113
+#need to reset cruntime each time beacuse otherwise it compounds
+
+#easier way to do this simple task... 
+sum(imdb$runtimeMinutes, na.rm = TRUE)
+```
+
+## Joins
+
+Inner join -\> will take multiple sets of data, will join them when some variable contains a common value. For instance, merge table x and table y where column 1 matches.
+
+Left join -\> will keep every value in table x, will match when there is something in common, but if no match, will assign NA. Result will have one row for each row in table x.
+
+Right join -\> will keep every value from table y. Result will have one row for each row in table y.
+
+Full join -\> will keep all values from both tables. Fill in NAs wherever there is no match.
+
+need to update some stuff here \~ missed 6 minutes of class
+
+```{r}
+### GO CHECK SLIDES AND TRY THIS## 
+
+library(tidyverse)
+papers <- "https://raw.githubusercontent.com/difiore/ada-datasets/main/papers.csv"
+p <- read_csv(papers, col_names = TRUE )
+head(p)
+View(p)
+
+#inner joining
+#NOT VERIFIED
+inner <- inner_join(p, Author, by = c("lastName" = "First Author Last Name", "firstName" = "First Author First Name")) ##NOT WORKING
+```
+
+Fuzzy Joins
+
+```{r}
+#prelim data wrangling
+#splitting the author column into multiple columns using a delimiter
+#in original set, multiple authors are separated by semicolon
+p <- p |> 
+  separate_wider_delim(
+    cols = Author,
+    delim = ";", 
+    names = c("First Author", "A2", "A3", "A4"),
+    too_few = "align_start", #if there are <4 authors it will start from 1 and go along
+    too_many = "drop" #if there are >4 authors, anything after A4 will be removed
+  ) |>
+  mutate(A2 = str_trim('A2', "both"), #cleaning white space out of the resultant string
+         A3 = str_trim('A3', "both"),
+         A4 = str_trim('A4', "both")
+         )
+View(p)
+
+#Installing fuzzyjoin -> see Diversion below
+library(fuzzyjoin)
+#THIS CODE DOES NOT WORK BECAUSE MY DATA WRANGLE FAILED, just notes for now
+
+#join author table and p table based on whether or not David Abbot 
+author <- tibble(partialName = c("^Abbott")) #^ means #####, this is the 'query table' that tells us what we are looking to essentially subset from the big data set 
+#this is ONE functionality of fuzzy joins - to allow subsetting without scrutinizing/cleaning the dataset
+#more fuzzyjoin functionality to come
+View(author)
+inner_fuzzy <- regex_inner_join(p, author, by = c("First Author" = "partialName"))
+View(inner_fuzzy)
+#all authors with "Abbot" as a partial name will return into the subsetted data
+#resultant table has 11 rows, most of which are David Abbott, but not all
+
+#if we want ONLY David Abbott, we can make our query table more specific
+author <- tibble(partialName = c("^Abbott, D")) #^ means #####
+View(author)
+inner_fuzzy <- regex_inner_join(p, author, by = c("First Author" = "partialName"))
+View(inner_fuzzy)
+#only 8 rows, all of which are D. Abbott
+
+author <- tibble(partialName = c("^Wil", "ony$"))
+inner_fuzzy <- regex_inner_join(p, author, by = c("First Author" = "partialName"))
+
+```
+
+## Functions
+
+```{r}
+#generic pseudocode for writing a function
+my_function <- function(<argument list>) { 
+<<function code>>}
+return(value) #what will it give back to the user
+```
+
+```{r}
+#x needs to be tabular data
+my_print_reps <- function(x, reps = 2){
+  #default reps if not specified = 2, with a single argument x reps = 2
+  for(i in 1:reps){ 
+    #print x as many times as reps, basically print the table twice if no reps argument
+    print(x)
+  }
+  for(i in 1:nrow(x)){ 
+    #print the i-th row for each row (again, basically the table again but row-wise)
+    print(x[i, ])
+  }
+  return(NULL)
+}
+#if you don't explicitly define a return value, r will return the most recent calculation
+#best practice: always return something!
+
+df <- data.frame(x = c(1,2,3,4), y = c("a", "b", "c", "d"))
+my_print_reps(df) #yay! it worked! 
+
+a <- my_print_reps(df)
+a
+```
+
+## Troubleshoot: Installing defunct Packages
+
+Fuzzyjoin was not able to be installed because it is no longer available on CRAN network. To get around this, we have some options.
+
+Option 1: Download from the CRAN archive as a tar.gz file Go to CRAN website, look up 'fuzzyjoin', and click the most recent version of the file to download it locally \[https://cran.r-project.org/src/contrib/Archive/fuzzyjoin/\]. In lower right panel, use the "Install" button. Use the dropdown menu to select "tar.gz" instead of "CRAN," then navigate to the downloaded file.
+
+Note: This might not work if there is not a C++ compiler on the computer. Most Macs have one that will automatically work, but for PCs, be sure to download the RTools application.
+
+Option 2: Download from the developer's GitHub account.
+
+```{r}
+devtools::install_github("dgrtwo/fuzzyjoin")
+```
