@@ -485,20 +485,19 @@ Fuzzy Joins
 p <- p |> 
   separate_wider_delim(
     cols = Author,
-    delim = ";", 
-    names = c("First Author", "A2", "A3", "A4"),
-    too_few = "align_start", #if there are <4 authors it will start from 1 and go along
-    too_many = "drop" #if there are >4 authors, anything after A4 will be removed
+    delim = ";", #set delim
+    names = c("First Author", "A2", "A3", "A4"), #create new column headings
+    too_few = "align_start", #if there are <4 authors, this will start with the first and go from there
+    too_many = "drop" #if there are >4 authors, it will just do first 4 and drop the rest
   ) |>
-  mutate(A2 = str_trim('A2', "both"), #cleaning white space out of the resultant string
-         A3 = str_trim('A3', "both"),
-         A4 = str_trim('A4', "both")
+  mutate(A2 = str_trim(`A2`, "both"), #trim white space
+         A3 = str_trim(`A3`, "both"),
+         A4 = str_trim(`A4`, "both")
          )
 View(p)
 
 #Installing fuzzyjoin -> see Diversion below
 library(fuzzyjoin)
-#THIS CODE DOES NOT WORK BECAUSE MY DATA WRANGLE FAILED, just notes for now
 
 #join author table and p table based on whether or not David Abbot 
 author <- tibble(partialName = c("^Abbott")) #^ means #####, this is the 'query table' that tells us what we are looking to essentially subset from the big data set 
