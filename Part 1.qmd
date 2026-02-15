@@ -471,9 +471,14 @@ p <- read_csv(papers, col_names = TRUE )
 head(p)
 View(p)
 
-#inner joining
-#NOT VERIFIED
-inner <- inner_join(p, Author, by = c("lastName" = "First Author Last Name", "firstName" = "First Author First Name")) ##NOT WORKING
+author <- tibble(fullName = c("Abbott, David"), 
+                 lastName = "Abbott",
+                 firstName = "David")
+
+#inner join
+inner <- inner_join(p, author, 
+                    by = c("First Author Last Name"= "lastName", "First Author First Name" = "firstName"))
+
 ```
 
 Fuzzy Joins
