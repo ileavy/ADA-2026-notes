@@ -124,7 +124,7 @@ v2 <- c(1, 1, 2, 3, 4, 5)
 skew_var(v2) #0.25
 ```
 
-## Mathematical Distributions
+## Class 11: Distributions
 
 Some statistics are estimates of parameters of well-defined distributions in classical statistical inference.
 
@@ -387,8 +387,6 @@ pbeta(q = 0.2, shape1 = 2, shape2 = 4) #0.26272, the point x=0.2 is 26% of the w
 qbeta(p = 0.5, shape1 = 2, shape2 = 4) #0.3138102, at the point 0.313, 50% of the data lies on either side
 ```
 
-## February 26th
-
 # Confidence Intervals
 
 An interval around our estimated mean for the sampling distribution, giving us a range around that mean that any given sample from the population would be some amount of likely to fall within.
@@ -451,17 +449,78 @@ To generate this we need to [1] resample from our observed data with replacement
 We can use the quantile() function (like qnorm, qt, etc.) to define the limits of the CI based on the central tendency of our many sample statistics. 
 
 ```{r}
+#set values
 n_boot <- 10000 #how many times to resample
 boot <- vector()
 n <- length(x)
 
+#using a for loop to create boot
 for(i in 1:n_boot){
   boot[[i]] <- mean(sample(x, n, replace = TRUE))
 }
+
+#alternative to for loop using do()
+#boot <- do(n_boot) * mean(sample(x, n, replace = TRUE))
+
+#final step v
 ci.b <- quantile(boot, probs = c(0.025, 0.975))
 ci.b
 ```
 
+## Class 12: Hypothesis Testing
+
+H0, null hypothesis
+Ha, alternative hypothesis(-es)
+
+To implement a hypothesis test, we need to:
+
+- calculate a test statistic based on our data
+
+- calculate the p value associated with the test stat (probability of obtaining, by chance, a test stat that is as hgih or higher than the calculated one)
+
+- compare test stat to an appropriate sampling distribution to yield a p value
+
+- compare p value with significance level ($\alpha$)
+
+
+In parametric statistics, we make the assumption that the sampling distribution will mimic a known distribution (normal, t, etc.).
+
+$$ Z = \frac {\bar x - mu} {s / \sqrt{n}} $$
+# Example: One Tailed T Test
+Adult woolly monkeys have average body weight of 7.2kg. In another population, which may be a different species, I weigh 15 animals. I want to know if the weight of the second population is meaningfully different than in the first group. 
+
+```{r}
+library(tidyverse)
+x <- read_csv("https://raw.githubusercontent.com/difiore/ada-datasets/main/woolly-weights.csv", col_names = TRUE)
+
+colnames(x)
+mean(x$weight) #mean is 6.4. Could this mean have been pulled from a the first population? 
+
+m <- mean(x$weight)
+sd <- sd(x$weight) #0.89
+se <- sd/sqrt(length(x$weight)) #0.23
+
+#our expectation (null hyp) is that mean - mu = 0 (no difference)
+
+mu <- 7.2 #expectation
+t_stat <- (m - mu) / se
+t_stat #-3.3
+
+# What is the 95% CI around our mean estimate? 
+# If it doesn't include 7.2, that would be an early indicator that t might be significant.
+boot <- vector()
+for(i in 1:1000){
+  boot[[i]] <- mean(sample(x$weight, length(x$weight), replace = TRUE))
+}
+ci.b <- quantile(boot, probs = c(0.025, 0.975))
+ci.b #5.977, 6.87
+# this CI does NOT include the expected mean
+
+#is this t statistic significantly far from 0? 
+
+
+
+```
 
 
 
