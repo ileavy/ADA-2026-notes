@@ -1,0 +1,468 @@
+---
+title: "Part 2"
+format: html
+editor: visual
+---
+
+# Part 2: Statistics and Inference
+
+Packages
+
+```{r}
+install.packages("mosaic")
+install.packages("radiant")
+install.packages("moments")
+
+library(mosaic)
+library(radiant)
+library(moments)
+```
+
+# February 17th
+
+## Statistics - Key Ideas
+
+*Population*: all the individuals of interest
+
+*Sample*: a representative subset of the population that allows us to make inferences about the population
+
+The goal of statistics is to make a robust claim about a population based on a sample of data points. This is biased in some ways, because all samples are \< populations. We can use bias-adjustment methods on the sample to correct for this, or other, potential biases.
+
+*Parameter*: descriptions of the variable of interest in the larger population based on statistical inference, estimates depend on robusticity of statistics
+
+*Statistic*: some function of the data alone, a combination based on a finite amount of data, can only describe the sample - not the population
+
+What kinds of statistics are we interested in?
+
+*Central tendency*: What is the mean/median/central value of our data?
+
+-   mean (average)
+-   median (central numerical point)
+-   mode (most common value)
+-   harmonic mean (average of 1/each observation, inverse mean, less susceptible to outliers)
+
+*Spread*: How much do the non-central values deviate from the central tendency?
+
+-   mean deviation (avg. of abs. values of deviations from median)
+
+-   mean squared deviation (avg. of squared deviations from mean) AKA variance
+
+-   standard deviation (square root of variance)
+
+-   inter-quartile range (value range between 25% and 75% of observations)
+
+-   range (maximum - minimum value)
+
+*Population vs. Sample spread*
+
+-   population variance = a parameter, where N = population size
+
+$$\frac{SS}{N} = \sigma^2$$
+
+-   population sd = $\sigma$
+
+-   sample variance = a statistic = SS / n-1 = s\^2, where n = sample size
+
+$$\frac{SS}{n-1} = s^2$$
+
+-   sample sd = s
+
+*Shape*: the evenness or skewness of variation within the distribution
+
+-   skewness: characterizes the assymetry of a distribution $$
+    g_1 = (1/n) \sum_i^n (\frac{x_i - \bar{x}}{s})^3
+    $$
+-   kurtosis: characterizes the peakedness or flatness of a distribution (compared with noramlity) $$
+    g_2 = (1/n) \sum_i^n (\frac{x_i - \bar{x}}{s})^4
+    $$ \## Example Code for Spread
+
+```{r}
+#population variance
+sum(((v-mean(v))^2)/length(v))
+
+#sample variance
+sum(((v-mean(v))^2)/(length(v)-1))
+var(v)
+
+#population standard deviation
+radiant::sdpop #check this one
+
+#sample standard deviation
+sd(v)
+
+#skewness
+sum(((v-mean(v))/sd(v))^3)/(length(v)-1)
+moments::skewness(v)
+```
+
+## Challenge: Calculating Statistics Write your own functions for the following:
+
+-   calculate the variance for a vector of values representing an entire population of measurements
+-   calculate the variance for a vector representing a sample \_ calculate skewness
+
+```{r}
+
+pop_var <- function(v){
+  sum(((v-mean(v))^2)/length(v))
+}
+
+#not working vvv
+sam_var <- function(v){
+  sum(((v-mean(v))^2)/(length(v)-1))
+}
+
+v <- c(1,2,3,4,5)
+pop_var(v) #2
+sam_var(v) #2.5
+
+skew_var <- function(v){
+  sum(((v-mean(v))/sd(v))^3)/(length(v)-1)
+}
+
+skew_var(v) #0
+v2 <- c(1, 1, 2, 3, 4, 5)
+skew_var(v2) #0.25
+```
+
+## Mathematical Distributions
+
+Some statistics are estimates of parameters of well-defined distributions in classical statistical inference.
+
+Parameters such as $\mu$ and $\sigma$ of the Gaussian (normal) distribution, or $\lambda$ of the Poisson distribution define these distribution functions but are not statistics.
+
+Normal Distributions
+
+```{r}
+#plot a normal distribution
+library(mosaic)
+mu <- 10 #mean parameter
+sigma <- 2 #sd parameter
+plotDist("norm", mean = mu, sd = sigma, xlab = "x", ylab = "Frequency")
+#first argument defines the distribution
+
+#random sampling from the population expressed by the normal dist
+s1 <- rnorm(n=10, mean = 10, sd = 2) #pull from a normal pop with these rules, pull 10 individuals for the sample
+histogram(s1)
+mean(s1) #9.915
+sd(s1) #1.769
+
+s2 <- rnorm(n = 10000, mean = 10, sd = 2) #10000 individuals
+histogram(s2) #looks more normal
+mean(s2) #10.014
+sd(s2) #2.037
+```
+
+What is the skewness of a normal distribution? What about our samples?
+
+```{r}
+#normal distributions have a skewness of 0, kurtosis of 3
+
+s <- rnorm(n=10000, mean = 10, sd = 2)
+moments::skewness(s) #0.0455, expect to be closer to 0 as dist gets more normal
+moments::kurtosis(s) #3.114
+```
+
+F Distributions
+
+```{r}
+#parameters are degrees of freedom, diff than plotting a norm
+df1 <- 5 #moderate right skew
+df2 <- 20
+
+plotDist("f", df1 = df1, df2 = df2, xlab = "x", ylab = "frequency")
+
+s <- rf(n=10000, df1 = 5, df2 = 20)
+histogram(s) #also right skewed
+mean(s) #1.106
+sd(s) #0.82
+moments::skewness(s) #1.795
+moments::kurtosis(s) #8.487, higher than 3 so it is more sharply peaked than the norm
+```
+
+Beta Distribution - bounded between 0 - 1
+
+```{r}
+shape1 = 5 #aka alpha
+shape2 = 3 #aka beta
+
+plotDist("beta", shape1 = shape1, shape2 = shape2)
+
+s <- rbeta(n = 10000, shape1 = shape1, shape2 = shape2)
+histogram(s) #slight left skew
+mean(s) #0.627
+sd(s) #0.160
+moments::skewness(s) #-0.279
+moments::kurtosis(s) #2.572
+```
+
+## Sampling Distribution of a Statistic
+
+If we were to sample many times from a distribution/population and caclulate summary stastics, we will get slightly different values for each sample. We can then define a new distribution of those calculated statistics.
+
+*Sampling distribution*: set of possible statistics that could have been generated if the data collection process were repeated many times, along with the probability of these possible values
+
+Creating a sampling distribution for the mean
+
+```{r}
+reps <- 500 #set how many times to do the next thing
+sdm <- do(reps) * mean(rnorm(n=1000, mean = 10, sd = 2)) #setting a data frame containing the resulting mean for each of 500 samples taken from the defined normal distribution
+##sdm means sample distribution mean##
+str(sdm) #500 observations, 1 variable
+histogram(sdm$mean) #looks pretty normal
+mean(sdm$mean) #9.979, really close to 10 which is the population mean
+#the more reps we do, the closer we will get to the population mean - in theory
+#the mean of the sampling distribution for the mean should be a strong estimate for the true mean of the population
+#the standard deviation of this distribution will represent the standard error of the sample??? 
+
+#we could also do this with other statistics for the sample (median, mode, etc.)
+samp_dist_median <- do(reps) * median(rnorm(n=1000, mean = 10, sd = 2))
+str(samp_dist_median)
+histogram(samp_dist_median$median)
+#^ generates a sample distribution of medians
+
+#one more for standard deviation
+samp_dist_sd <- do(reps) * sd(rnorm(n=1000, mean = 10, sd = 2))
+histogram(samp_dist_sd$sd)
+```
+
+## Standard Error
+
+So, how reliable are these estimates of a population parameter based on the mean of the sampling distribution for a statistic? How far off is a statistic we calculate from the true statistic?
+
+standard error (SE) = square root of the variance of the sampling distribution = standard deviation of the sampling distribution
+
+$$\frac{s}{\sqrt{n}}$$
+
+```{r}
+# se = sd(x)/sqrt(length(x))
+se_mean <- sd(sdm$mean)
+se_median <- sd(samp_dist_median$median)
+```
+
+Estimating Standard Error in 3 Ways
+
+1.  standard dev of pop / sqrt (sample size) = expected standard error of a sample from that population
+
+2.  g
+
+3.  g
+
+# February 24th
+
+## Playing with Distributions
+
+Draw 100 random numbers from a normal distribution with mean = 2 and sd = 4 - What is the mean of those numbers? - What is the sd? - What is the se of the mean based on this sample? - What is the expected standard error for a sample of this size? - If we draw samples 1000 times of this size and take the mean to get a sampling distribution for the mean, what is the standard error calculated as the standard deviation of this distibution? - What if sample size is changed to 1000? - What if we change it to 20?
+
+```{r}
+s <- rnorm(n=100, mean = 2, sd = 4)
+
+mean(s) #2.759087
+sd(s) #4.110515
+sd(s)/sqrt(length(s)) #0.4110515 -> standard error of this sample
+4/sqrt(length(s)) #0.4 -> expected standard error (4 is the sd we have defined)
+
+reps <- 1000
+sd_mean <- do(reps) * mean(rnorm(n=100, mean = 2, sd = 4))
+#sd_mean$mean will be a vector 1000 elements long where each cell is a mean of one sample
+sd(sd_mean$mean) #0.4132877 <- this is standard error?? 
+
+#change sample size to 1000
+sd_mean_1000 <- do(reps) * mean(rnorm(n=1000, mean = 2, sd = 4))
+sd(sd_mean_1000$mean) #0.1274715
+
+sd_mean_20 <- do(reps) * mean(rnorm(n=20, mean = 2, sd = 4))
+sd(sd_mean_20$mean) #0.8766896
+```
+
+Now, let's try it with a t distribution. Lower numbers of df (lower sample size) will output a shorter, flatter dist. Lower kurtosis.
+
+Step 1: draw a t distribution
+
+```{r}
+#ignoring non-centrality parameter (default = 0)
+#changing degree of freedom parameter
+plotDist("t", df = 100, xlab = "x", ylab = "Frequency", col = "red")
+plotDist("t", df = 50, add = TRUE)
+plotDist("t", df = 25, add = TRUE)
+plotDist("t", df = 12, add = TRUE)
+plotDist("t", df = 6, add = TRUE)
+plotDist("t", df = 3, add = TRUE)
+plotDist("t", df = 1, add = TRUE)
+```
+
+Above df = 30, t dist and normal dist are basically the same shape.
+
+Step 2: Draw 100 random numbers from a t-dist with 99 degrees of freedom and a non-centrality at 2
+
+```{r}
+st <- rt(n=100, ncp = 2, df = 99)
+
+mean(st) #2.056604
+sd(st) #0.9839444
+sd(st)/sqrt(length(st)) #0.09839444 -> standard error of this sample
+
+sd_mean_st <- do(reps) * mean(rt(n = 100, df = 99, ncp = 2))
+glimpse(sd_mean_st)
+histogram(sd_mean_st$mean)
+```
+
+Now, with a beta distribution. Parameters are a (shape 1) and b (shape 2)
+
+```{r}
+plotDist("beta", shape1 = 2, shape2 = 4, xlab = "x", xlim = c(0,1), ylab = "Frequency", col = "red")
+plotDist("beta", shape1 = 1, shape2 = 1, add = TRUE) #flat line
+plotDist("beta", shape1 = 0.5, shape2 = 0.5, add = TRUE) #u shape
+plotDist("beta", shape1 = 2, shape2 = 0.5, add = TRUE) #exp growth looking
+plotDist("beta", shape1 = 0.5, shape2 = 2, add = TRUE) #exp dec looking
+plotDist("beta", shape1 = 4, shape2 = 2, add = TRUE) #backwards of original
+```
+
+Using shape1 = 0.3, shape2 = 4
+
+```{r}
+sb <- rbeta(n=100, shape1 = 0.3, shape2 = 4)
+
+mean(sb) #0.070244
+sd(sb) #0.09899034
+sd(sb)/sqrt(length(sb)) #0.009899034 -> standard error of this sample
+
+sd_mean_sb <- do(reps) * mean(rbeta(n = 100, shape1 = 0.3, shape2 = 4))
+sd(sd_mean_sb$mean) #0.01053539 = estimated standard error for the pop
+histogram(~mean, data = sd_mean_sb) #looks normal along the mean
+#the sampling distribution is always normally distributed, regardless of the distribution you pull samples from 
+```
+
+## Key Functions for Distributions
+
+r\_(n = ) draws random samples of size n from a given standard distribution
+
+p\_(q = ) returns the quantile associated with a given value of q
+
+q\_(p = ) returns the value of p at a given quantile through the distribution
+
+d\_(x = ) returns value of the probability density function (pdf) at the value of x
+
+```{r}
+#How far through the distribution to we have to go to get to x = q? 
+pnorm(q = 0, mean = 0, sd = 1)
+#0.5, where q is 0 i am halfway (50%) along the normal dist
+
+#what value of x is associated with being halfway along a distribution? 
+qnorm(p = 0.5, mean = 0, sd = 1)
+#0, where q is 0 p = 0.5
+```
+
+What values of x are associated with being 0.025 and 0.975 quantiles (aka the boundaries of 95% of the distribution)?
+
+```{r}
+qnorm(p = c(0.025, 0.975), mean = 0, sd = 1) #need a known mean and sd
+#[1] -1.959964  1.959964
+#this expresses the boundaries of the central 95% of a given distribution
+#a CI is -1.96 to 1.96 standard deviations from the mean
+
+#what if we hvae a beta dist? 
+qbeta(p = c(0.025, 0.975), shape1 = 2, shape2 = 4)
+#[1] 0.05274495 0.71641794
+#this dist is skewed, so 95% of data is within 0.5 and 0.71
+```
+
+```{r}
+lower <- qbeta(0.025, shape1 = 2, shape2 = 4)
+upper <- qbeta(0.975, shape1 = 2, shape2 = 4)
+curve(dbeta(x, shape1 = 2, shape2 = 4), from = 0, to = 1, lwd = 2) #drawing a beta distribution with given shapes, fit between 0 and 1
+x <- seq(lower, upper, length = 500)
+polygon(c(lower, x, upper),
+        c(0, dbeta(x, shape1 = 2, shape2 = 4), 0),
+        col = "lightblue")
+abline(v = c(lower, upper), col = "red", lwd = 2)
+
+#how much of the information is to the left of the lower bound? 
+pbeta(q = lower, shape1 = 2, shape2 = 4) #0.025
+#yay it works! replicable back and forth :) 
+
+#how much of the information is to the left of 0.2? (as an example)
+pbeta(q = 0.2, shape1 = 2, shape2 = 4) #0.26272, the point x=0.2 is 26% of the way through the dist
+
+#what is the expected median for a sample drawn from this dist? 
+qbeta(p = 0.5, shape1 = 2, shape2 = 4) #0.3138102, at the point 0.313, 50% of the data lies on either side
+```
+
+## February 26th
+
+# Confidence Intervals
+
+An interval around our estimated mean for the sampling distribution, giving us a range around that mean that any given sample from the population would be some amount of likely to fall within.
+
+A 95% CI, for instance, tells us that 95% of the time, a sample taken from a sample distribution, would have a mean within the CI range.
+
+CI = point estimate +\_ critical value X SE
+
+$$ CI = estimate \pm {critical value * SE} $$
+
+Using a normal distribution: 
+```{r}
+ci.n <- mean(x) + qnorm(c(0.025, 0.0975)) * (sd(x)/sqrt(length(x)))
+```
+
+Example - calculating a theoretical CI: 
+```{r}
+x <- c(2.9, 4.8, 8.9, -3.2, 9.1, -2.5, -0.9, -0.1, 2.8, -1.7)
+m <- mean(x)
+se <- sd(x) / sqrt(length(x))
+
+ci <- m + qnorm(c(0.025, 0.975)) * se
+ci
+#we are assuming that the mean of any number of values pulled from vector x will be normally distributed -> the mean of any 10 numbers pulled from x should fall within the CI 95% of the time
+```
+
+# Central Limit Theorem
+
+The sampling distribution of averages (or any other summary statistic) of "independent and identically distributed" variables approaches a normal distribution as sample size increases. 
+
+This allows us to estimate summary statistics at a population level even though we can only observe a sample of the true data that exists. 
+
+Regardless of the underlying probability distribution of a population of iid random variables, the distribution of a statistic should: 
+
+- be approximately normal
+
+- be centered at the population mean for the statistics
+
+- have ##CHECK NOTES##
+
+# Small Sample Sizes - t Distributions
+
+When sample size is < 30 or so, we don't use the normal dist. to calculate CIs. Can use Gosset's or Student's T distribution.
+
+A t distribution is a continuous probability distribution that is similar in shape to normality, but has fatter tails at smaller sample sizes. Sample size is input as degrees of freedom (df = sample size - 1) to create the distribution for a given sample. 
+
+Using a t distribution: 
+```{r}
+ci.t <- mean(x) + qt(c(0.25, 0.975), sf = length(x) - 1) * (sd(x)/sqrt(length(x)))
+```
+
+# Bootstrapping
+
+We do not imagine that the sampling distribution has a particular shape (normal, t). 
+
+Instead, we create a distribution by resampling from our own sample many many times using a simulation process known as Monte Carlo. This allows us to approximate a sampling distribution without needing the entire population data or making assumptions about the distribution of critical points. 
+
+To generate this we need to [1] resample from our observed data with replacement many times (same number of observations as original sample), [2] calculate our statistic of interest for each resample, [3] plot all of those statistics of interest to create a sampling distribution that is specific to our data. 
+
+We can use the quantile() function (like qnorm, qt, etc.) to define the limits of the CI based on the central tendency of our many sample statistics. 
+
+```{r}
+n_boot <- 10000 #how many times to resample
+boot <- vector()
+n <- length(x)
+
+for(i in 1:n_boot){
+  boot[[i]] <- mean(sample(x, n, replace = TRUE))
+}
+ci.b <- quantile(boot, probs = c(0.025, 0.975))
+ci.b
+```
+
+
+
+
+
