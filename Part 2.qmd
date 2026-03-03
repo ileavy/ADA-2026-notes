@@ -9,6 +9,7 @@ editor: visual
 Packages
 
 ```{r}
+
 install.packages("mosaic")
 install.packages("radiant")
 install.packages("moments")
@@ -18,7 +19,7 @@ library(radiant)
 library(moments)
 ```
 
-# February 17th
+# Class 10: Intro to Statistics
 
 ## Statistics - Key Ideas
 
@@ -247,7 +248,7 @@ Estimating Standard Error in 3 Ways
 
 3.  g
 
-# February 24th
+# Class 11: Distributions
 
 ## Playing with Distributions
 
@@ -387,7 +388,7 @@ pbeta(q = 0.2, shape1 = 2, shape2 = 4) #0.26272, the point x=0.2 is 26% of the w
 qbeta(p = 0.5, shape1 = 2, shape2 = 4) #0.3138102, at the point 0.313, 50% of the data lies on either side
 ```
 
-# Confidence Intervals
+## Confidence Intervals
 
 An interval around our estimated mean for the sampling distribution, giving us a range around that mean that any given sample from the population would be some amount of likely to fall within.
 
@@ -397,12 +398,14 @@ CI = point estimate +\_ critical value X SE
 
 $$ CI = estimate \pm {critical value * SE} $$
 
-Using a normal distribution: 
+Using a normal distribution:
+
 ```{r}
 ci.n <- mean(x) + qnorm(c(0.025, 0.0975)) * (sd(x)/sqrt(length(x)))
 ```
 
-Example - calculating a theoretical CI: 
+Example - calculating a theoretical CI:
+
 ```{r}
 x <- c(2.9, 4.8, 8.9, -3.2, 9.1, -2.5, -0.9, -0.1, 2.8, -1.7)
 m <- mean(x)
@@ -413,40 +416,41 @@ ci
 #we are assuming that the mean of any number of values pulled from vector x will be normally distributed -> the mean of any 10 numbers pulled from x should fall within the CI 95% of the time
 ```
 
-# Central Limit Theorem
+## Central Limit Theorem
 
-The sampling distribution of averages (or any other summary statistic) of "independent and identically distributed" variables approaches a normal distribution as sample size increases. 
+The sampling distribution of averages (or any other summary statistic) of "independent and identically distributed" variables approaches a normal distribution as sample size increases.
 
-This allows us to estimate summary statistics at a population level even though we can only observe a sample of the true data that exists. 
+This allows us to estimate summary statistics at a population level even though we can only observe a sample of the true data that exists.
 
-Regardless of the underlying probability distribution of a population of iid random variables, the distribution of a statistic should: 
+Regardless of the underlying probability distribution of a population of iid random variables, the distribution of a statistic should:
 
-- be approximately normal
+-   be approximately normal
 
-- be centered at the population mean for the statistics
+-   be centered at the population mean for the statistics
 
-- have ##CHECK NOTES##
+-   have ##CHECK NOTES##
 
-# Small Sample Sizes - t Distributions
+## Small Sample Sizes - t Distributions
 
-When sample size is < 30 or so, we don't use the normal dist. to calculate CIs. Can use Gosset's or Student's T distribution.
+When sample size is \< 30 or so, we don't use the normal dist. to calculate CIs. Can use Gosset's or Student's T distribution.
 
-A t distribution is a continuous probability distribution that is similar in shape to normality, but has fatter tails at smaller sample sizes. Sample size is input as degrees of freedom (df = sample size - 1) to create the distribution for a given sample. 
+A t distribution is a continuous probability distribution that is similar in shape to normality, but has fatter tails at smaller sample sizes. Sample size is input as degrees of freedom (df = sample size - 1) to create the distribution for a given sample.
 
-Using a t distribution: 
+Using a t distribution:
+
 ```{r}
 ci.t <- mean(x) + qt(c(0.25, 0.975), sf = length(x) - 1) * (sd(x)/sqrt(length(x)))
 ```
 
-# Bootstrapping
+## Bootstrapping
 
-We do not imagine that the sampling distribution has a particular shape (normal, t). 
+We do not imagine that the sampling distribution has a particular shape (normal, t).
 
-Instead, we create a distribution by resampling from our own sample many many times using a simulation process known as Monte Carlo. This allows us to approximate a sampling distribution without needing the entire population data or making assumptions about the distribution of critical points. 
+Instead, we create a distribution by resampling from our own sample many many times using a simulation process known as Monte Carlo. This allows us to approximate a sampling distribution without needing the entire population data or making assumptions about the distribution of critical points.
 
-To generate this we need to [1] resample from our observed data with replacement many times (same number of observations as original sample), [2] calculate our statistic of interest for each resample, [3] plot all of those statistics of interest to create a sampling distribution that is specific to our data. 
+To generate this we need to \[1\] resample from our observed data with replacement many times (same number of observations as original sample), \[2\] calculate our statistic of interest for each resample, \[3\] plot all of those statistics of interest to create a sampling distribution that is specific to our data.
 
-We can use the quantile() function (like qnorm, qt, etc.) to define the limits of the CI based on the central tendency of our many sample statistics. 
+We can use the quantile() function (like qnorm, qt, etc.) to define the limits of the CI based on the central tendency of our many sample statistics.
 
 ```{r}
 #set values
@@ -467,27 +471,23 @@ ci.b <- quantile(boot, probs = c(0.025, 0.975))
 ci.b
 ```
 
-## Class 12: Hypothesis Testing
+# Class 12: Hypothesis Testing
 
-H0, null hypothesis
-Ha, alternative hypothesis(-es)
+H0, null hypothesis Ha, alternative hypothesis(-es)
 
 To implement a hypothesis test, we need to:
 
-- calculate a test statistic based on our data
+-   calculate a test statistic based on our data
 
-- calculate the p value associated with the test stat (probability of obtaining, by chance, a test stat that is as hgih or higher than the calculated one)
+-   calculate the p value associated with the test stat (probability of obtaining, by chance, a test stat that is as hgih or higher than the calculated one)
 
-- compare test stat to an appropriate sampling distribution to yield a p value
+-   compare test stat to an appropriate sampling distribution to yield a p value
 
-- compare p value with significance level ($\alpha$)
-
+-   compare p value with significance level ($\alpha$)
 
 In parametric statistics, we make the assumption that the sampling distribution will mimic a known distribution (normal, t, etc.).
 
-$$ Z = \frac {\bar x - mu} {s / \sqrt{n}} $$
-# Example: One Tailed T Test
-Adult woolly monkeys have average body weight of 7.2kg. In another population, which may be a different species, I weigh 15 animals. I want to know if the weight of the second population is meaningfully different than in the first group. 
+$$ Z = \frac {\bar x - mu} {s / \sqrt{n}} $$ \# Example: One Tailed T Test Adult woolly monkeys have average body weight of 7.2kg. In another population, which may be a different species, I weigh 15 animals. I want to know if the weight of the second population is meaningfully different than in the first group.
 
 ```{r}
 library(tidyverse)
@@ -515,13 +515,33 @@ for(i in 1:1000){
 ci.b <- quantile(boot, probs = c(0.025, 0.975))
 ci.b #5.977, 6.87
 # this CI does NOT include the expected mean
-
-#is this t statistic significantly far from 0? 
-
-
-
+# this means we have pretty good evidence that the sample is drawn from a different population than our expectation came from
 ```
 
+## Two-Tailed T Test
 
+What is the two-tailed probability of getting a statistic as far away from the expected value (0) as it is BY CHANCE?
 
+We need to calculate the chance it is higher + the chance it is lower (two tails).
 
+```{r}
+#t_stat is test statistic (= - 3.3), mean of sample is 6.3
+#what is the chance of getting a test statistic that is >-3.3 or <3.3
+p_lower <- pt(-1 * abs(t_stat), df = n - 1) #gives us the area under the curve (t distribution) for values <-3.3
+p_upper <- 1 - pt(1 * abs(t_stat), df = n - 1)
+p <- p_lower + p_upper
+p #0.008704304
+
+#what is the 95% CI around the mean for this sample? 
+ci <- m + qt(p =(0.025, 0.975), ncp = 0, df = n-1) * se
+
+#using the t test function in R
+t.test(x$weight, mu = 7.2)
+```
+
+T statistic for a two sampled t test assuming unequal variance between groups
+
+$$ T = \frac{\bar x2 - \bar x1 - \mu}{\sqrt(\frac{s1^2}{n1} + \frac{s2^2}{n2})} $$
+Where $\mu$ is SOMETHING, s is variance for each sample, n is number of observations for each sample, and xbar is the actual mean of each sample
+
+Degrees of freedom for a two sampled t test assuming unequal variance between groups
