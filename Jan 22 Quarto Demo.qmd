@@ -1,0 +1,64 @@
+---
+title: "Jan 22 Quarto Demo"
+author: Isabelle Leavy
+format: html
+---
+
+## This is my test quarto file
+
+The following code will do something. 
+
+# Standard code block
+```{r}
+x <- 1
+print(x)
+log(-x)
+```
+
+# Exclude the source code
+```{r}
+#| echo: false
+x <- 2
+print(x)
+log(-x)
+```
+
+# Exclude output
+```{r}
+#| eval: false
+x <- 3
+print(x)
+log(-x)
+```
+
+# Exclude warnings
+```{r}
+#| warning: false
+x <- 4
+print(x)
+log(-x)
+```
+
+# Suppress everything 
+```{r}
+#| include: false
+x <- 5
+print(x)
+log(-x)
+```
+
+# Add figure
+```{r}
+#| out-width: "90%"
+knitr::include_graphics("img/wanna_see_the_code_2x.png")
+```
+
+{r}
+#| echo: false
+#| out-width: "4in"
+knitr::include_graphics("img/norm_normal_file_format_2x.png")
+```
+
+
+
+
