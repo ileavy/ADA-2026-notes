@@ -17,6 +17,9 @@ install.packages("moments")
 library(mosaic)
 library(radiant)
 library(moments)
+library(dplyr)
+library(tidyverse)
+
 ```
 
 # Class 10: Intro to Statistics
@@ -541,7 +544,201 @@ t.test(x$weight, mu = 7.2)
 
 T statistic for a two sampled t test assuming unequal variance between groups
 
-$$ T = \frac{\bar x2 - \bar x1 - \mu}{\sqrt(\frac{s1^2}{n1} + \frac{s2^2}{n2})} $$
-Where $\mu$ is SOMETHING, s is variance for each sample, n is number of observations for each sample, and xbar is the actual mean of each sample
+$$ T = \frac{\bar x2 - \bar x1 - \mu}{\sqrt(\frac{s1^2}{n1} + \frac{s2^2}{n2})} $$ Where $\mu$ is expected difference between samples according to null hyp (usually 0), s is variance for each sample, n is number of observations for each sample, and xbar is the actual mean of each sample
 
 Degrees of freedom for a two sampled t test assuming unequal variance between groups
+
+***Check Class Challenge for an example of a two sample T test***
+
+## Permutation-Based Inference
+
+1.  What should we use as a test statistic?
+
+2.  What is the null hypothesis?
+
+3.  What is the alternative hypothesis?
+
+4.  Generate a permutation distribution for the test statistic of interest.
+
+5.  Determine the P Value.
+
+To demonstrate, we will use the data set from class challenge "Two Sample T Test." We are interested in the difference in home range size between males and females.
+
+```{r}
+#setup
+d <- read_csv("https://raw.githubusercontent.com/difiore/ada-datasets/main/tbs-2006-2008-ranges.csv")
+head(d)
+d <- d |> select(id, sex, sex.code, kernel95)
+```
+
+```{r}
+#What is the actual difference between the means? 
+obs_diff <- d |> 
+  summarize(diff = mean(kernel95[sex == "M"]) - mean(kernel95[sex == "F"])) |>
+  pull(diff)
+obs_diff #110.9561
+```
+
+```{r}
+#What is the permuted difference between means? 
+#create a permutation distribution and see if our obs_diff falls within it and/or if our null hyp falls within it
+n_perm <- 10000
+perm_diff <- vector() #will hold the results of each permuted mean in a vector
+for (i in 1:n_perm){
+  d |> 
+    mutate(sex = sample(sex)) |> #shuffle sex randomly within the data set, default replace = FALSE to make sure the number of M and F are the same as original
+    summarize(diff = mean(kernel95[sex == "M"]) - mean(kernel95[sex == "F"])) |>
+    pull(diff) -> perm_diff[[i]] #pull out result to put it into the dummy vector
+}
+histogram(perm_diff) #appears normal
+#interestingly, the observed difference is at the very top end of the permuted distribution
+#if our null hyp is correct, the difference would be 0
+#0 is close to the midpoint of this histogram, which suggests we could accept the null, but we need to do some more testing to confirm
+```
+
+Permutation testing like this makes no assumptions about the distribution of the original data or the sampled data. This is a robust system that is not dependent on sample size or having known distribution patterns. NO DOWNSIDE... but it takes longer than parametric tests for computers to do. Modern computers will have no problem doing it at pretty large scales.
+
+```{r}
+#Alternative methods to create a permutation distribution
+### ADD LATER
+
+#do()
+perm_diff <- {do(n_perm) * d |> 
+    mutate(sex=sample(sex))}
+
+#replicate()
+```
+
+```{r}
+#Computing a P value
+#How many times is our permuted value bigger than our observed value? 
+p_val <- sum(abs(perm_diff) >= abs(obs_diff))/length(perm_diff)
+p_val #9e-04
+
+#alternative 
+p_val <- mean(abs(perm_diff) >= abs(obs_diff))
+```
+
+The {infer} package offers functions to do permutation tests without needing to code them yourself! Works whether we are dealing with means, difference of means, proportions, difference of proportions.
+
+```{r}
+install.packages("infer")
+library(infer)
+```
+
+```{r}
+#use specify() to indicate the variables we are interested in
+d <- d |> 
+  specify(formula = kernel95 ~ sex)
+
+#use hypothesize() to declare H0
+d <- d|> hypothesize(null = "independence")
+#"independence" means there is no relationship, variables operate independently of one another
+#null could be different for a one-tail test, for instance
+
+#use generate() to generate replications of permuted data under the assumption that null is true
+perm <- d |> generate(reps = 1000, type = "permute")
+
+#use calculate() to present summary statistics of interest for each replication
+perm_diff <- perm |> calculate(stat = "diff in means", order = c("M", "F"))
+#perm_diff is a df that tracks perm number and diff of means (as "stat")
+
+#use visualize() to show the null distribution (the permuted distribution)
+visualize(perm_diff, bins = 20)
+#NOT WORKING
+
+#use visualize() to show the test statistic relative to the permuted distribution
+obs_diff <- d |> specify(kernel95 ~ sex) |> calculate(stat = "diff in means", order = c("M", "F")) #just gives the obs diff using infer code
+
+visualize(perm_diff, bins = 20) +
+  shade_p_value(obs_stat = obs_diff, direction = "both")
+
+get_p_value(perm_diff, obs_diff, direction = "both")
+#returns a warning about p = 0 because NONE of the permutations had a diff of means greater than the observed difference
+```
+
+# Class 13: Intro to Regression
+
+```{r}
+install.packages("lmodel2")
+install.packages("sjPlot")
+install.packages("broom")
+install.packages("manipulate")
+install.packages("patchwork")
+
+library(tidyverse)
+library(manipulate)
+library(patchwork)
+library(infer)
+```
+
+Basic premise of modeling is to explore a relationship between... - an outcome/response/dependent variable, **y** - one or more epxlanatory/predictor/independent variables, **x**
+
+**Simple Linear Regression** (general)
+
+-   outcome is a continuous numerical variable
+
+-   single predictor that is either categorical or numerical
+
+**Multiple Linear Regression** (general)
+
+-   outcome is a continuous numerical variable
+
+-   more than one predictor variable, either categorical or numerical
+
+**ANOVA/ANCOVA**
+
+-   focus on categorical predictors
+
+-   ANOVA = one or more categorical independent variables
+
+-   ANCOVA = a combination of categorical and continuous independent variables
+
+**Generalized Linear Regression**
+
+-   allows for binary, categorical, count variables as outcomes
+
+**Descriptive Statistics**
+
+Covariance: between 2 variables is the product of the deviation of each variable from their respective means divided by df (n-1)
+
+cov(x,y) = SUM ((x - xbar)(y - ybar)) / (n-1)
+
+Correlation Coefficient: standardized covariance - divided by product of standard deviations
+
+cor(x, y) = cov(x,y) / sd(x)sd(y)
+
+```{r}
+d <- read_csv("https://raw.githubusercontent.com/difiore/ada-datasets/main/zombies.csv", col_names = TRUE)
+names(d)
+
+#What is the covariation between weight and height? 
+cov_wh <- sum(((d$weight - mean(d$weight))*(d$height - mean(d$height)))/(nrow(d) - 1))
+cov_wh #66.03314
+cov(d$height, d$weight) #same! it worked! 
+
+#What is the correlation coefficient between weight and height? 
+cor_wh <- (sum(((d$weight - mean(d$weight))*(d$height - mean(d$height)))/(nrow(d) - 1))) / (sd(d$weight)*sd(d$height))
+cor_wh #0.8325862
+cor(d$weight, d$height) #same! works! 
+
+#plot the relationship between variables
+plot(d$weight ~ d$height)
+```
+
+Regression can be used to...
+
+-   use one of more variables to predict the value of an outcome based on information contained in predictor variables
+-   explicity describe and quantify the relationship between x and y, determine the significance of this relationship, generate measures to summarize the relationship, and identify causal relationships (sometimes)
+-   develop and choose among different models of the relationship between two variables
+-   do analyses of covariation among sets of variables to identify their relative explanatory power (what x is best able to predict y)
+
+Regression formula:
+
+Typically, we model y as a linear function of the variables. yi = beta0 + beta1\*Xi + epsiloni
+
+beta0 = intercept B1 = slope ep = each obervation is a deviation away from the line (the error term)
+
+The beta values are "regression coefficients" that our analysis is trying to estimate, while minimizing the error term. This leaves us basically with $$y=mx+b$$, allowing us to predict y for a given x.
+
+<u>What criteria can we apply to minimize the error value?</u> **Ordinary Least Squares**: minimizes the residuals (AKA the squared difference of each y.obs from the predictive line)
