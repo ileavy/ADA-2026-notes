@@ -739,6 +739,77 @@ Typically, we model y as a linear function of the variables. yi = beta0 + beta1\
 
 beta0 = intercept B1 = slope ep = each obervation is a deviation away from the line (the error term)
 
-The beta values are "regression coefficients" that our analysis is trying to estimate, while minimizing the error term. This leaves us basically with $$y=mx+b$$, allowing us to predict y for a given x.
+The beta values are "regression coefficients" that our analysis is trying to estimate, while minimizing the error term. This leaves us basically with $y=mx+b$, allowing us to predict y for a given x.
 
-<u>What criteria can we apply to minimize the error value?</u> **Ordinary Least Squares**: minimizes the residuals (AKA the squared difference of each y.obs from the predictive line)
+**Ordinary Least Squares**: minimizes the residuals (AKA the squared difference of each y.obs from the predictive line)
+
+```{r}
+temp <- d |> mutate(centered_height = height - mean(height),
+                    centered_weight = weight - mean(weight))
+
+slope.test <- function(beta1, data) {
+  g <- ggplot(data = data, aes(x =centered_weight, y = centered_height))
+  g <- g + geom_point()
+  g <- g + geom_abline(intercept = 0, slope = beta1, alpha = 1/2)
+  ols <- sum((data$centered_height - beta1 * data$centered_weight)^2)
+  g <- g + ggtitle(paste("Slope +", beta1, "\nSum of Squared Deviations =", round(ols, 3)))
+}
+
+manipulate(slope.test(beta1, data = temp), beta1 = slider(-1, 1, initial = 0, step = 0.005))
+#this would in theory show how least squares regression works with a slope you can move on your own
+```
+
+```{r}
+head(d)
+m <- lm(height ~ weight, data = d) #creating a linear model of this relationship
+summary(m)
+#give estimate of intercept, slope
+```
+
+Exercise: 
+- Plot testis size in relation to male body size, what is that relationship like? 
+- Calculate beta0 and beta1 for the regression of: log(combined_testis_mess) ~ log(body_mass_male_mean)
+- run the lm function and summarize to compare 
+
+```{r}
+f <- "https://raw.githubusercontent.com/difiore/ada-datasets/main/comparative_primate_sexuality_data.csv"
+d <- read_csv(f, col_names = TRUE)
+names(d)
+
+ggplot(data = d, aes(x = log(Body_mass_male_mean), y = log(Combined_testis_mass))) +
+  geom_point(na.rm = TRUE)
+
+temp <- d |> filter(!is.na(Combined_testis_mass))
+
+beta1 <- cov(log(temp$Body_mass_male_mean), log(temp$Combined_testis_mass))/ var(log(temp$Body_mass_male_mean))
+beta1 #0.75
+
+##GO BACK AND ADD
+m <- lm(formula = log(Combined_testis_mass) ~ log(Body_mass_male_mean), data = temp)
+summary(m) #yay same number :) 
+
+names(m) 
+#m$coefficients holds regression coefficients
+#m$model holds original x and y values
+#m$fitted.values holds fitted values for y = yhat
+#m$residuals holds residuals for each obesrvation = y - yhat
+#broom :: tidy(m) gives a clean table of beta coeff, p values, intercepts etc.
+#broom :: glance(m) gives summary statistics for the model as a whole
+broom::tidy(m)
+#statistic = estimate / standard error
+```
+
+Alternatives to OLS regression: 
+
+```{r}
+library(lmodel2)
+
+m <- lm(formula = log(Combined_testis_mass) ~ log(Body_mass_male_mean), data = temp)
+summary(m)
+
+m2 <- lmodel2(log(Combined_testis_mass) ~ log(Body_mass_male_mean), data = d, 
+              range.y = "relative", range.x = "relative", nperm = 1000)
+summary(m2)
+##NOT WORKINGGGGG
+
+```
