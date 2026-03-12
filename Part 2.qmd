@@ -766,10 +766,7 @@ summary(m)
 #give estimate of intercept, slope
 ```
 
-Exercise: 
-- Plot testis size in relation to male body size, what is that relationship like? 
-- Calculate beta0 and beta1 for the regression of: log(combined_testis_mess) ~ log(body_mass_male_mean)
-- run the lm function and summarize to compare 
+Exercise: - Plot testis size in relation to male body size, what is that relationship like? - Calculate beta0 and beta1 for the regression of: log(combined_testis_mess) \~ log(body_mass_male_mean) - run the lm function and summarize to compare
 
 ```{r}
 f <- "https://raw.githubusercontent.com/difiore/ada-datasets/main/comparative_primate_sexuality_data.csv"
@@ -799,7 +796,7 @@ broom::tidy(m)
 #statistic = estimate / standard error
 ```
 
-Alternatives to OLS regression: 
+Alternatives to OLS regression:
 
 ```{r}
 library(lmodel2)
@@ -813,3 +810,117 @@ summary(m2)
 ##NOT WORKINGGGGG
 
 ```
+
+*Maximum Likelihood Estimation*
+
+Find parameters (beta coefficients) that maximize the probability of observing the observed outcome variable. A likelihood is just a product of a set of probabilities (or, sum of log probabilities). What is the probability of observing a particular piece of data given a set of parameter values and an observation? 
+
+```{r}
+f <- "https://raw.githubusercontent.com/difiore/ada-datasets/main/Street_et_al_2017.csv"
+x <- read_csv(f, col_names = TRUE)
+
+install.packages("bbmle")
+install.packages("mle2")
+
+
+#What is the relative likelhihood of ddrawing the set of three numbers 41, 70, and 10 from a normal distribution with mu = 50 and sigma = 10
+
+val<- c(41, 70, 10)
+mean <- 50
+sd <- 10
+
+#vector of probabilities of pulling out each value from a normal dist that includes the three values
+l <- dnorm(val, mean, sd) #probability density formula for normal distributions
+l #2.660852e-02 5.399097e-03 1.338302e-05
+l[1] * l[2] * l[3] #product of probabilities = overall likelihood
+# 1.922632e-09
+
+ll <- log(l)
+ll #-3.626524  -5.221524 -11.221524
+sum(ll) # -20.06957
+exp(sum(ll)) #[1] 1.922632e-09, turns it back into the overall likelihood
+
+set.seed(0) #setting a seed means you will pull the same simulated numbers
+d <- rnorm(100, 50, 10) #100 random obsevrations from a normal dist with 50 adn 10
+head(d)
+
+#What is the log likelihood and likelhood of drawing this particular sample of 100 from the normal distribution? 
+
+l <- dnorm(d, mean, sd) #vector of 100 likelihoods
+ll <- log(l)
+sum(ll) #-360.7421, log likelihood of pulling those 100 values
+exp(sum(ll)) #2.146356e-157 = LIKELIHOOD! 
+
+#What is the likelihoood of pulling those numbers [d] out of a different distribution
+mean <- 65
+sd <- 20
+
+l2 <- dnorm(d, mean, sd)
+ll2 <- log(l2)
+sum(log(l2)) #-428.3894
+exp(sum(log(l2))) #[1] 8.970731e-187
+```
+
+Use bbmle to generate an function that will calculate maximum likelihood estimation. Maximizing likelihood = minimizing the negative log likelihood. 
+
+```{r}
+library(bbmle)
+minuslogl <- function(mu, sigma, verbose = TRUE) {
+  ll = sum(dnorm(d, mean = mu, sd = sigma, log = TRUE))
+  nll <- -1 * ll
+  return(nll)
+}
+
+m <- mle2(
+  minuslogl = minuslogl,
+  start = list(mu = 0, sigma = 1),
+  method = "SANN" #simulated annealing, a method of optimization, other options exist
+)
+summary(m) #returns mu, sigma, se, and z val -> estimates the mu and sigma for a given parameter
+
+
+```
+
+**Elements of Regression**
+
+The goal of regression is to partition variance in the outcome among different sources. What variance is explained by the regression model and what variance is 'leftover'? 
+
+We can separate the total variation in y (deviations of observed response variable from the mean = sum of squares y = SSY) into what is explained by our model (regression sum of squares = SSR), and any variance left over is the error (error sum of squares = SSE = epsilon = the deviation between the observed and estimated y values). Regression is an analysis of how variances are distributed.
+
+SSY = SSR + SSE
+
+```{r}
+z <- read_csv("https://raw.githubusercontent.com/difiore/ada-datasets/main/zombies.csv", col_names = TRUE)
+
+#regression model
+m <- lm(data = z, height~weight)
+
+#SSY = height - mean(height)
+SSY <- sum((m$model$height - mean(m$model$height)) ^ 2)
+
+#SSR = predicted height - mean height
+SSR <- sum((m$fitted.values - mean(m$model$height)) ^2 )
+
+#SSE = height - predicted height
+SSE <- sum((m$model$height - m$fitted.values) ^ 2)
+
+```
+
+Variance is the ratio of the sum of squares to a number of degrees of freedom, so we can use these new variables to populate an ANOVA table. Dividing the sums of squares but an appropriate degrees of freedom (n-1) to get the mean square (variance). The number of degrees of freedom is equal to the potential predictor variables. 
+
+```{r}
+df_y <- 
+#mean overall variance
+MSY <- SSY/df_y
+
+```
+
+How to do this easily in R: 
+```{r}
+m <- lm(data = z, height~weight)
+a <- aov(height~weight, data = z)
+anova(m) #shows the anova data for the model
+summary(a) #same thing
+```
+
+R-squared is the ratio of what is explained by our model relative to all the potential cariables that could be affecting outcomes. rsq = SSR/SSY
